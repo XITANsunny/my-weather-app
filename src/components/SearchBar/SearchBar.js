@@ -8,7 +8,7 @@ class SearchBar extends React.Component{
 
 
     onSumbit = e =>{
-        e.prevenDefault();
+        e.preventDefault();
         if (this.state.city ===""){
             alert ("city can not be empty");
         }else{
