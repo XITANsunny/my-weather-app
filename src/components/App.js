@@ -2,15 +2,51 @@ import React, { useDebugValue } from "react";
 //import {useState} from 'react';
 import WeatherBody from "./WeatherBody/WeatherBody";
 import weather from "../services/weatherServices";
-import { fetchCurrentWeather } from "../services/weather";
 import Loader from "./Loader/Loader";
 import SearchBar from "./SearchBar/SearchBar";
 import CurrentCity from "./CurrentCity/CurrentCity";
 
 import "./App.css";
 
+// TODO: move it to a different file
+function degToWindDir(deg) {
+  if (deg > 11.25 && deg <= 33.75) {
+    return "NNE";
+  } else if (deg > 33.75 && deg <= 56.25) {
+    return "ENE";
+  } else if (deg > 56.25 && deg <= 78.75) {
+    return "E";
+  } else if (deg > 78.75 && deg <= 101.25) {
+    return "ESE";
+  } else if (deg > 101.25 && deg <= 123.75) {
+    return "ESE";
+  } else if (deg > 123.75 && deg <= 146.25) {
+    return "SE";
+  } else if (deg > 146.25 && deg <= 168.75) {
+    return "SSE";
+  } else if (deg > 168.75 && deg <= 191.25) {
+    return "S";
+  } else if (deg > 191.25 && deg <= 213.75) {
+    return "SSW";
+  } else if (deg > 213.75 && deg <= 236.25) {
+    return "SW";
+  } else if (deg > 236.25 && deg <= 258.75) {
+    return "WSW";
+  } else if (deg > 258.75 && deg <= 281.25) {
+    return "W";
+  } else if (deg > 281.25 && deg <= 303.75) {
+    return "WNW";
+  } else if (deg > 303.75 && deg <= 326.25) {
+    return "NW";
+  } else if (deg > 326.25 && deg <= 348.75) {
+    return "NNW";
+  } else {
+    return "N";
+  }
+}
+
 // TODO: make it an env variable or move it to a different file
-const API_KEY = '28b9c5f6b18b44de8cc5fee76406cf72';
+const API_KEY = "28b9c5f6b18b44de8cc5fee76406cf72";
 // TODO: move it to a different file
 const DAYS_IN_WEEK = [
   "Sunday",
@@ -23,20 +59,51 @@ const DAYS_IN_WEEK = [
 ];
 // TODO: move it to a different file
 // Convert the data from weatherbit.io to make it UI friendly
-function transferWeatherData(apiResult) {
-  const weatherList = apiResult.data.slice(0, 7).map((d) => {
+function transferWeatherData(apiResultForDays, apiResultForCurrentTime) {
+  const weatherListForDays = apiResultForDays.data.slice(0, 7).map((d) => {
+      console.log(apiResultForCurrentTime);
     const dayIndex = new Date(d.ts * 1e3).getDay();
     return {
       day: DAYS_IN_WEEK[dayIndex],
       minTemp: d.min_temp,
       maxTemp: d.max_temp,
+      iconCode: d.weather.code,
     };
   });
+  const {
+    tmp: currentTemp,
+    rh: humidity,
+    wind_spd: windSpeedInMS,
+    wind_dir: windDegree,
+    weather: currentWeather
+  } = apiResultForCurrentTime.data[0];
 
   return {
-    weatherList,
-    city: apiResult.city_name,
+    weatherListForDays,
+    city: apiResultForDays.city_name,
+    currentWeather: {
+        humidity: `${humidity}%`,
+        wind: `${Math.round(windSpeedInMS * 3.6 * 1e3) / 1e3} kph ${degToWindDir(windDegree)}`,
+        tmp: currentTemp,
+        iconCode: currentWeather.code,
+    },
   };
+}
+
+async function fetchWeatherData(lat, lon, city) {
+  if ((lat == null || lon == null) && city == null) {
+    throw new Error("Must provide lat & long or city");
+  }
+  let apiUrlSuffix;
+  if (lat && lon) {
+    apiUrlSuffix = `?lat=${lat}&lon=${lon}&key=${API_KEY}`;
+  } else {
+    apiUrlSuffix = `?city=${city}&key=${API_KEY}`;
+  }
+  const resForDays = await weather.get(`forecast/daily${apiUrlSuffix}`);
+  const resForCurrentTime = await weather.get(`current${apiUrlSuffix}`);
+
+  return transferWeatherData(resForDays.data, resForCurrentTime.data);
 }
 
 function getWeatherDataForCurrentLocation() {
@@ -44,13 +111,7 @@ function getWeatherDataForCurrentLocation() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async ({ coords }) => {
         const { longitude, latitude } = coords;
-        weather
-          .get(
-            `daily?lat=${latitude}&lon=${longitude}&key=28b9c5f6b18b44de8cc5fee76406cf72`
-          )
-          .then((res) => {
-            resolve(transferWeatherData(res.data));
-          });
+        resolve(await fetchWeatherData(latitude, longitude));
       });
     } else {
       alert(
@@ -60,45 +121,41 @@ function getWeatherDataForCurrentLocation() {
     }
   });
 }
-//fetch the data
-//if (long && lat){
-
-//}else{
-//use the input box for location
-//}
 
 class App extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      weatherList: [],
+      weatherListForDays: [],
       city: null,
+      currentWeather: null,
       isLoaded: false,
     };
   }
 
   componentDidMount() {
-    getWeatherDataForCurrentLocation().then(({ weatherList, city }) => {
-      this.setState({ isLoaded: true, weatherList, city });
+    getWeatherDataForCurrentLocation().then(({ weatherListForDays, city, currentWeather }) => {
+      this.setState({ isLoaded: true, weatherListForDays, city, currentWeather });
     });
   }
 
   searchCity = async (city) => {
-    await weather
-      .get(`daily?city=${city}&key=28b9c5f6b18b44de8cc5fee76406cf72`)
-      .then((res) => {
-        const { weatherList, city } = transferWeatherData(res.data);
-        this.setState({
-          weatherList,
-          city,
-          isLoaded: true,
-        });
-      });
+    const { weatherListForDays, currentWeather } = await fetchWeatherData(
+      undefined,
+      undefined,
+      city
+    );
+    this.setState({
+      weatherListForDays,
+      currentWeather,
+      city,
+      isLoaded: true,
+    });
   };
 
   render() {
-    const { city, weatherList, isLoaded } = this.state;
+    const { city, weatherListForDays, isLoaded, currentWeather } = this.state;
 
     // Loader
     if (!isLoaded) {
@@ -110,53 +167,32 @@ class App extends React.Component {
       <div className="App">
         <div className="weatherContainer">
           <SearchBar city={city} searchCity={this.searchCity} />
-          <CurrentCity className="currentCity" />
+          <CurrentCity
+            className="currentCity" 
+            city={city}
+            currentDay={weatherListForDays.length ? weatherListForDays[0].day : ""}
+            icon={currentWeather.iconCode}
+            humidity={currentWeather.humidity}
+            wind={currentWeather.wind}
+          />
 
           <div className="daily">
-            {weatherList.map(({ day, minTemp, maxTemp }, i) => (
-              <WeatherBody
-                key={i}
-                day={day}
-                minTemp={minTemp}
-                maxTemp={maxTemp}
-              />
-            ))}
+            {weatherListForDays.map(
+              ({ day, minTemp, maxTemp, iconCode }, i) => (
+                <WeatherBody
+                  icon={iconCode}
+                  key={i}
+                  day={day}
+                  minTemp={minTemp}
+                  maxTemp={maxTemp}
+                />
+              )
+            )}
           </div>
         </div>
       </div>
     );
   }
 }
-
-/*const App = () =>{
-    const [city, setCity] = useState('');
-    const [loading, setLoading] =useState(false);
-    const [weather,setWeather] =useState([]);
-
-    const searchCity = async (city) =>{
-        setCity(city);
-        setLoading(true);
-        const weather = await weather(city);
-        setWeather(weather);
-        setLoading(false);
-    };
-
-    
-    return(
-        <div className="App">
-            <div className="weatherContainer pt-3 pb-3">
-                <WeatherBody day={'Monday'} icon={'Sunny'} minTemp={16} maxTemp={20}/>
-                <WeatherBody day={'Tuesday'} icon={'Sunny'} minTemp={15} maxTemp={21}/>
-                <WeatherBody day={'Wednesday'} icon={'Sunny'} minTemp={14} maxTemp={19}/>
-                <WeatherBody day={'Thursday'} icon={'Sunny'} minTemp={13} maxTemp={18}/>
-                <WeatherBody day={'Friday'} icon={'Sunny'} minTemp={12} maxTemp={17}/>
-                <WeatherBody day={'Saturday'} icon={'Sunny'} minTemp={11} maxTemp={16}/>
-                <WeatherBody day={'Sunday'} icon={'Sunny'} minTemp={10} maxTemp={15}/>
-            </div>
-            
-        </div>
-        )
-};
-*/
 
 export default App;

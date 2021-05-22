@@ -1,27 +1,22 @@
 import React from "react";
 //import { Container, Row, Col } from "react-bootstrap";
-import "./CurrentCity.css"
+import "./CurrentCity.css";
+import Icon from '../Icon/Icon';
 
-const CurrentCity = () =>{
-    return(
+const CurrentCity = (props) => {
+  return (
     <div className="currentcity">
-    
-        <div className="col">
-        <span>Sydney</span>
-        <span>Tuesday</span>
-        <span>icon 18</span>
-       
-        </div>
-        <div className="col">
-            <span>Percipitation:</span>
-            <span>Humidity:</span>
-            <span>Wind:</span>
-            <span>Pollen Count:</span>
-        </div>
-    
-    
-  </div>)
-  
+      <div className="col">
+        <span>{props.city}</span>
+        <span>{props.currentDay}</span>
+        <Icon icon={props.icon} />
+      </div>
+      <div className="col">
+        <span>Humidity: {props.humidity}</span>
+        <span>Wind: {props.wind}</span>
+      </div>
+    </div>
+  );
 };
 
 export default CurrentCity;
