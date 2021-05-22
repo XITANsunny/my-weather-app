@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useDebugValue } from "react";
 //import {useState} from 'react';
 import WeatherBody from "./WeatherBody/WeatherBody";
 import weather from "../services/weatherServices";
@@ -9,15 +9,47 @@ import CurrentCity from "./CurrentCity/CurrentCity";
 
 import "./App.css";
 
+// TODO: make it an env variable or move it to a different file
+const API_KEY = '28b9c5f6b18b44de8cc5fee76406cf72';
+// TODO: move it to a different file
+const DAYS_IN_WEEK = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+// TODO: move it to a different file
+// Convert the data from weatherbit.io to make it UI friendly
+function transferWeatherData(apiResult) {
+  const weatherList = apiResult.data.slice(0, 7).map((d) => {
+    const dayIndex = new Date(d.ts * 1e3).getDay();
+    return {
+      day: DAYS_IN_WEEK[dayIndex],
+      minTemp: d.min_temp,
+      maxTemp: d.max_temp,
+    };
+  });
+
+  return {
+    weatherList,
+    city: apiResult.city_name,
+  };
+}
+
 function getWeatherDataForCurrentLocation() {
   return new Promise((resolve, reject) => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async ({ coords }) => {
         const { longitude, latitude } = coords;
         weather
-          .get(`daily?lat=${latitude}&lon=${longitude}&key=28b9c5f6b18b44de8cc5fee76406cf72`)
+          .get(
+            `daily?lat=${latitude}&lon=${longitude}&key=28b9c5f6b18b44de8cc5fee76406cf72`
+          )
           .then((res) => {
-            resolve(res.data.data);
+            resolve(transferWeatherData(res.data));
           });
       });
     } else {
@@ -40,28 +72,25 @@ class App extends React.Component {
     super(props);
 
     this.state = {
-      temp: [],
+      weatherList: [],
       city: null,
       isLoaded: false,
     };
   }
 
   componentDidMount() {
-      getWeatherDataForCurrentLocation().then(data => {
-        console.log(data);
-        this.setState({ isLoaded: true });
-      });
+    getWeatherDataForCurrentLocation().then(({ weatherList, city }) => {
+      this.setState({ isLoaded: true, weatherList, city });
+    });
   }
 
   searchCity = async (city) => {
     await weather
       .get(`daily?city=${city}&key=28b9c5f6b18b44de8cc5fee76406cf72`)
       .then((res) => {
-        const temp = res.data.data;
-        const city = res.data.city_name;
-        console.log(temp);
+        const { weatherList, city } = transferWeatherData(res.data);
         this.setState({
-          temp,
+          weatherList,
           city,
           isLoaded: true,
         });
@@ -69,70 +98,29 @@ class App extends React.Component {
   };
 
   render() {
-    //helper methods
-    const minTemp = this.state.temp.map((el) => {
-      return parseInt(el.low_temp);
-    });
+    const { city, weatherList, isLoaded } = this.state;
 
-    const maxTemp = this.state.temp.map((el) => {
-      return parseInt(el.max_temp);
-    });
-
-    const icon = this.state.temp.map((el) => {
-      return el.weather.code;
-    });
-
-    const description = this.state.temp.map((el) => {
-      return el.weather.description;
-    });
-
-    //Loader
-    if (!this.state.isLoaded) {
+    // Loader
+    if (!isLoaded) {
       return <Loader msg={"Loading..."} />;
     }
 
+    // TODO handle icon
     return (
       <div className="App">
         <div className="weatherContainer">
-          <SearchBar city={this.state.city} searchCity={this.searchCity} />
+          <SearchBar city={city} searchCity={this.searchCity} />
           <CurrentCity className="currentCity" />
 
           <div className="daily">
-            <WeatherBody
-              day={"Monday"}
-              icon={icon[0]}
-              minTemp={minTemp[0]}
-              maxTemp={maxTemp[0]}
-              description={description[0]}
-            />
-            <WeatherBody
-              day={"Tuesday"}
-              icon={icon[1]}
-              minTemp={minTemp[1]}
-              maxTemp={maxTemp[1]}
-              description={description[1]}
-            />
-            <WeatherBody
-              day={"Wednesday"}
-              icon={icon[2]}
-              minTemp={minTemp[2]}
-              maxTemp={maxTemp[2]}
-              description={description[2]}
-            />
-            <WeatherBody
-              day={"Thursday"}
-              icon={icon[3]}
-              minTemp={minTemp[3]}
-              maxTemp={maxTemp[3]}
-              description={description[3]}
-            />
-            <WeatherBody
-              day={"Friday"}
-              icon={icon[4]}
-              minTemp={minTemp[4]}
-              maxTemp={maxTemp[4]}
-              description={description[4]}
-            />
+            {weatherList.map(({ day, minTemp, maxTemp }, i) => (
+              <WeatherBody
+                key={i}
+                day={day}
+                minTemp={minTemp}
+                maxTemp={maxTemp}
+              />
+            ))}
           </div>
         </div>
       </div>
