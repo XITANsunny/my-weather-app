@@ -10,6 +10,7 @@ const CurrentCity = (props) => {
         <span>{props.city}</span>
         <span>{props.currentDay}</span>
         <Icon icon={props.icon} />
+        <span>{props.temp}</span>
       </div>
       <div className="col">
         <span>Humidity: {props.humidity}</span>

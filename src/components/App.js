@@ -1,12 +1,23 @@
-import React, { useDebugValue } from "react";
+import React from "react";
 //import {useState} from 'react';
+import { Form } from "react-bootstrap";
 import WeatherBody from "./WeatherBody/WeatherBody";
 import weather from "../services/weatherServices";
 import Loader from "./Loader/Loader";
 import SearchBar from "./SearchBar/SearchBar";
 import CurrentCity from "./CurrentCity/CurrentCity";
 
+import 'bootstrap/dist/css/bootstrap.min.css';
 import "./App.css";
+
+
+// Unit supports Celsius Fahrenheit
+function parseTemp(unit, value) {
+  if (unit === "Celsius") {
+    return value;
+  }
+  return (value * 9) / 5 + 32;
+}
 
 // TODO: move it to a different file
 function degToWindDir(deg) {
@@ -61,7 +72,7 @@ const DAYS_IN_WEEK = [
 // Convert the data from weatherbit.io to make it UI friendly
 function transferWeatherData(apiResultForDays, apiResultForCurrentTime) {
   const weatherListForDays = apiResultForDays.data.slice(0, 7).map((d) => {
-      console.log(apiResultForCurrentTime);
+    console.log(apiResultForCurrentTime);
     const dayIndex = new Date(d.ts * 1e3).getDay();
     return {
       day: DAYS_IN_WEEK[dayIndex],
@@ -71,21 +82,23 @@ function transferWeatherData(apiResultForDays, apiResultForCurrentTime) {
     };
   });
   const {
-    tmp: currentTemp,
+    temp: currentTemp,
     rh: humidity,
     wind_spd: windSpeedInMS,
     wind_dir: windDegree,
-    weather: currentWeather
+    weather: currentWeather,
   } = apiResultForCurrentTime.data[0];
 
   return {
     weatherListForDays,
     city: apiResultForDays.city_name,
     currentWeather: {
-        humidity: `${humidity}%`,
-        wind: `${Math.round(windSpeedInMS * 3.6 * 1e3) / 1e3} kph ${degToWindDir(windDegree)}`,
-        tmp: currentTemp,
-        iconCode: currentWeather.code,
+      humidity: `${humidity}%`,
+      wind: `${Math.round(windSpeedInMS * 3.6 * 1e3) / 1e3} kph ${degToWindDir(
+        windDegree
+      )}`,
+      temp: currentTemp,
+      iconCode: currentWeather.code,
     },
   };
 }
@@ -131,13 +144,21 @@ class App extends React.Component {
       city: null,
       currentWeather: null,
       isLoaded: false,
+      isCelsius: true,
     };
   }
 
   componentDidMount() {
-    getWeatherDataForCurrentLocation().then(({ weatherListForDays, city, currentWeather }) => {
-      this.setState({ isLoaded: true, weatherListForDays, city, currentWeather });
-    });
+    getWeatherDataForCurrentLocation().then(
+      ({ weatherListForDays, city, currentWeather }) => {
+        this.setState({
+          isLoaded: true,
+          weatherListForDays,
+          city,
+          currentWeather,
+        });
+      }
+    );
   }
 
   searchCity = async (city) => {
@@ -155,12 +176,14 @@ class App extends React.Component {
   };
 
   render() {
-    const { city, weatherListForDays, isLoaded, currentWeather } = this.state;
+    const { city, weatherListForDays, isCelsius, isLoaded, currentWeather } =
+      this.state;
 
     // Loader
     if (!isLoaded) {
       return <Loader msg={"Loading..."} />;
     }
+    const tempUnit = isCelsius ? "Celsius" : "Fahrenheit";
 
     // TODO handle icon
     return (
@@ -168,14 +191,26 @@ class App extends React.Component {
         <div className="weatherContainer">
           <SearchBar city={city} searchCity={this.searchCity} />
           <CurrentCity
-            className="currentCity" 
+            className="currentCity"
             city={city}
-            currentDay={weatherListForDays.length ? weatherListForDays[0].day : ""}
+            currentDay={
+              weatherListForDays.length ? weatherListForDays[0].day : ""
+            }
             icon={currentWeather.iconCode}
             humidity={currentWeather.humidity}
             wind={currentWeather.wind}
+            temp={parseTemp(tempUnit, currentWeather.temp)}
           />
-
+          Using Fahrenheit
+            <Form.Check
+              type="switch"
+              id="custom-switch"
+              onChange={(event) => {
+                this.setState({
+                  isCelsius: !isCelsius,
+                });
+              }}
+            />
           <div className="daily">
             {weatherListForDays.map(
               ({ day, minTemp, maxTemp, iconCode }, i) => (
@@ -183,8 +218,8 @@ class App extends React.Component {
                   icon={iconCode}
                   key={i}
                   day={day}
-                  minTemp={minTemp}
-                  maxTemp={maxTemp}
+                  minTemp={parseTemp(tempUnit, minTemp)}
+                  maxTemp={parseTemp(tempUnit, maxTemp)}
                 />
               )
             )}
