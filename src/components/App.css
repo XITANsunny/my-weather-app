@@ -1,0 +1,9 @@
+.weatherContainer{
+    display: flex;
+    flex-direction: column;
+}
+
+.daily{
+    display: flex;
+    flex-direction: row;
+}
