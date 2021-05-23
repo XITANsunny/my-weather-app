@@ -13,12 +13,13 @@ import "./App.css";
 // Unit supports Celsius Fahrenheit
 function parseTemp(unit, value) {
   if (unit === "Celsius") {
-    return value;
+    return (<span>{Math.round(value)}&#176;C</span>)
   }
-  return (value * 9) / 5 + 32;
+  
+  return (<span>{Math.round((value * 9) / 5 + 32)}&#176;F</span>);
 }
 
-// TODO: make it an env variable or move it to a different file
+//make it an env variable or move it to a different file
 const API_KEY = "28b9c5f6b18b44de8cc5fee76406cf72";
 // TODO: move it to a different file
 const DAYS_IN_WEEK = [
@@ -97,6 +98,8 @@ function getWeatherDataForCurrentLocation() {
   });
 }
 
+
+
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -149,7 +152,7 @@ class App extends React.Component {
 
     // TODO handle icon
     return (
-      <div className="App">
+      <div className="app">
         <div className="weatherContainer">
           <SearchBar city={city} searchCity={this.searchCity} />
           <CurrentCity
@@ -163,7 +166,8 @@ class App extends React.Component {
             wind={currentWeather.wind}
             temp={parseTemp(tempUnit, currentWeather.temp)}
           />
-          Using Fahrenheit
+  
+          <p>Using Fahrenheit</p>
             <Form.Check
               type="switch"
               id="custom-switch"
@@ -173,7 +177,7 @@ class App extends React.Component {
                 });
               }}
             />
-          <div className="daily">
+          <div className="weekly" >
             {weatherListForDays.map(
               ({ day, minTemp, maxTemp, iconCode }, i) => (
                 <WeatherBody

@@ -1,11 +1,45 @@
 .currentcity{
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 15px;
+    margin-bottom: 2vh;
 }
 
 .col{
     display: flex;
     flex-direction: column;
-    flex-grow: 4;
+    
 }
+
+.currentLoc{
+    align-items: center;
+    text-align: center;
+}
+
+.details{
+    margin-top: 2vh;
+}
+
+
+@media only screen and (max-width: 768px) {
+    /* For mobile phones: */
+    .currentcity{
+        display: flex;
+        flex-direction: column;
+    }
+
+    .col{
+        border: 2px solid rgba(0, 0, 0, 0.3);
+        padding: 10px;
+        border-radius: 25px;
+        margin-bottom: 2vh;
+    }
+    .currentcity{
+        display: flex;
+        flex-direction: column;
+        border: unset;
+        margin-bottom: 2vh;
+    }
+  }

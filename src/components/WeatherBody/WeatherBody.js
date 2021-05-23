@@ -6,7 +6,8 @@ import Temper from '../Temper/Temper';
 
 const WeatherBody = (props) => {
     return(
-        <div className="WeatherBody card">
+        
+        <div className="weatherBody">
             <Days day={props.day} />
             <Icon icon ={props.icon} />
             <Temper minTemp = {props.minTemp} maxTemp = {props.maxTemp} />

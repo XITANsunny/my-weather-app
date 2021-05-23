@@ -1,0 +1,23 @@
+.searchBarContainer{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    margin-bottom: 5vh;
+    padding: 1vh;
+}
+
+.formSearchCity{
+    display: flex;
+    flex-direction: row;
+}
+
+.inputBox{
+    margin-right: 5%;
+}
+input{
+    border: 0;
+    outline: 0;
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  }
